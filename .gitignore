@@ -1,0 +1,5 @@
+.qodo
+bwr_snakemake/
+ad-hoc_shell_scripts/
+.DS_Store files
+.snakemake/
