@@ -1,0 +1,12 @@
+fastq_dir: "/mnt/c/Users/LENOVO/Documents/ONCO50_BATCH2/Results/Fastq"
+reference: "/mnt/c/Users/LENOVO/Documents/ONCO50_BATCH2/Results/Hg19/hg19.fa"
+output_dir: "/mnt/c/Users/LENOVO/Documents/ONCO50_BATCH2/Results/Hg19/hg19_results"
+gatk_path: "/home/abimbolajolaoluwa/gatk-4.6.1.0/gatk"
+
+bed: "/mnt/c/Users/LENOVO/Documents/ONCO50_BATCH2/Results/Hg19/Aviseq_hg19.bed"
+picard_path: "/mnt/c/Users/LENOVO/Documents/ONCO50_BATCH2/Results/Fastq/picard.jar"
+
+merged_csv: "/mnt/c/Users/LENOVO/Documents/ONCO50_BATCH2/Results/Hg19/merged_annotations.csv"
+
+annova_dir: "/mnt/c/Users/LENOVO/Documents/ONCO50_BATCH2/Results/Fastq/annovar"
+db_dir: "$ANNOVAR_DIR/humandb"

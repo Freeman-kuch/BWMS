@@ -1,0 +1,146 @@
+include: "rules/common.smk"
+
+import os
+
+configfile: "config.yaml"
+
+FASTQ_DIR = config["fastq_dir"]
+REFERENCE = config["reference"]
+OUTPUT_DIR = config["output_dir"]
+VCF_DIR = config["output_dir"]
+BED = config["bed"]
+PICARD_PATH = config["picard_path"]
+ANNOVAR_DIR = config["annova_dir"]
+DB_DIR = config["db_dir"]
+GATK_PATH = config["gatk_path"]
+
+SAMPLES = discover_samples(FASTQ_DIR)
+
+rule all:
+    input:
+        [get_bai(sample, OUTPUT_DIR) for sample in SAMPLES],
+        [get_filtered_vcf(sample, VCF_DIR) for sample in SAMPLES],
+        [get_annovar_out(sample, VCF_DIR) + ".vcf" for sample in SAMPLES]
+
+rule bwa_index:
+    input:
+        REFERENCE
+    output:
+        f"{REFERENCE}.bwt"
+    shell:
+        "bwa index {input}"
+
+rule bwa_mem:
+    input:
+        ref = REFERENCE,
+        r1 = lambda wildcards: get_r1(wildcards.sample, FASTQ_DIR),
+        r2 = lambda wildcards: get_r2(wildcards.sample, FASTQ_DIR),
+        idx = REFERENCE + ".bwt"
+    output:
+        temp(os.path.join(OUTPUT_DIR, "{sample}.sam"))
+    shell:
+        "bwa mem -t 8 {input.ref} {input.r1} {input.r2} > {output}"
+
+
+rule sam_to_bam:
+    input:
+        os.path.join(OUTPUT_DIR, "{sample}.sam")
+    output:
+        temp(os.path.join(OUTPUT_DIR, "{sample}.bam"))
+    threads: 8
+    shell:
+        "samtools view -@ {threads} -bS {input} > {output}"
+
+rule sort_bam:
+    input:
+        os.path.join(OUTPUT_DIR, "{sample}.bam")
+    output:
+        get_bam("{sample}", OUTPUT_DIR)
+    threads: 8
+    shell:
+        "samtools sort -@ {threads} -o {output} {input}"
+
+rule index_bam:  # to index the sorted read alignments so that we can quickly access reads by the genomic location they were mapped to
+    input:
+        lambda wildcards: get_bam(wildcards.sample, OUTPUT_DIR)
+    output:
+        get_bai("{sample}", OUTPUT_DIR)
+    shell:
+        "samtools index {input}"
+
+rule quality_control_gatk:
+    input:
+        vcf = lambda wildcards: get_vcf(wildcards.sample, VCF_DIR)
+    output:
+        filtered_vcf = get_filtered_vcf("{sample}", VCF_DIR)
+    shell:
+        """
+        gatk VariantFiltration \
+            -V {input.vcf} \
+            -O {output.filtered_vcf} \
+            --filter-expression "QD < 2.0 || FS > 60.0 || MQ < 40.0 || SOR > 3.0" \
+            --filter-name "LowQuality"
+        """
+
+rule add_read_groups:
+    input:
+        bam = lambda wildcards: get_bam(wildcards.sample, OUTPUT_DIR),
+        bai = lambda wildcards: get_bai(wildcards.sample, OUTPUT_DIR),
+    output:
+        bam = temp(get_rg_bam("{sample}", OUTPUT_DIR)),
+        bai = temp(get_rg_bai("{sample}", OUTPUT_DIR))
+    params:
+        picard = PICARD_PATH
+    shell:
+        """
+        java -jar {params.picard} AddOrReplaceReadGroups \
+            I={input.bam} \
+            O={output.bam} \
+            RGID=1 \
+            RGLB=lib1 \
+            RGPL=ILLUMINA \
+            RGPU=unit1 \
+            RGSM={wildcards.sample}
+        
+        samtools index {output.bam}
+        """
+
+rule variant_calling:
+    input:
+        bam = get_rg_bam("{sample}", OUTPUT_DIR),
+        bai = get_rg_bai("{sample}", OUTPUT_DIR),
+        bed = BED,
+        ref = REFERENCE
+    output:
+        gvcf = get_gvcf("{sample}", VCF_DIR)
+    params:
+        gatk = GATK_PATH,
+        mem = "-Xmx4G"
+    threads: 4  # Adjust based on your system
+    shell:
+        """
+        {params.gatk} --java-options "{params.mem}" HaplotypeCaller \
+            -R {input.ref} \
+            -I {input.bam} \
+            -L {input.bed} \
+            -O {output.gvcf} \
+            -ERC GVCF
+        """
+
+rule annovar_annotation:
+    input:
+        filtered_vcf = get_filtered_vcf("{sample}", VCF_DIR)
+    output:
+        annotated_prefix = get_annovar_out("{sample}", VCF_DIR),
+        avinput = temp(get_avinput("{sample}", VCF_DIR))
+    params:
+        annovar_dir = ANNOVAR_DIR,
+        db_dir = DB_DIR
+    shell:
+        """
+        {params.annovar_dir}/convert2annovar.pl -format vcf4 {input.filtered_vcf} > {output.avinput}
+        {params.annovar_dir}/table_annovar.pl {output.avinput} {params.db_dir} -buildver hg19 \
+            -out {output.annotated_prefix} -remove -protocol refGene,dbnsfp35a,clinvar_20240917,avsnp151 \
+            -operation g,f,f,f -nastring . -vcfinput
+        """
+
