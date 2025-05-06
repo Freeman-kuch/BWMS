@@ -3,4 +3,4 @@ bwr_snakemake/
 ad-hoc_shell_scripts/
 .DS_Store files
 .snakemake/
-.raw_data/*
+raw_data/*
