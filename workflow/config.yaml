@@ -16,3 +16,8 @@ gatk_path: "/fedgenhome/rotimi/softwares/gatk-4.6.2.0/gatk"   # export this on t
 
 bcftools: "/fedgenhome/rotimi/softwares/bcftools-1.21/bcftools"
 
+samtools: "/fedgenhome/rotimi/softwares/samtools-1.3.1/samtools"
+
+tabix: "/fedgenhome/rotimi/.local/bin/tabix"
+
+bwa: "/fedgenhome/rotimi/spack/opt/spack/linux-ubuntu22.04-icelake/gcc-11.4.0/bwa-0.7.17-cwb7uec2ksg6vajwwcnusv4643ubsweq/bin/bwa"

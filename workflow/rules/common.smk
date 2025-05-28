@@ -1,6 +1,11 @@
 import os
 import glob
 
+def discover_samples(fastq_dir):
+    r1_files = glob.glob(os.path.join(fastq_dir, "*_S*_L001_R1_001.fastq.gz"))
+    samples = [os.path.basename(f).replace("_L001_R1_001.fastq.gz", "") for f in r1_files]
+    return samples
+
 def get_r1(sample, fastq_dir):
     return os.path.join(fastq_dir, f"{sample}_L001_R1_001.fastq.gz")
 
@@ -40,7 +45,3 @@ def get_annovar_out(sample, vcf_dir):
 def get_gvcf(sample, vcf_dir):
     return os.path.join(vcf_dir, f"{sample}.g.vcf.gz")
 
-def discover_samples(fastq_dir):
-    r1_files = glob.glob(os.path.join(fastq_dir, "*_S*_L001_R1_001.fastq.gz"))
-    samples = [os.path.basename(f).replace("_L001_R1_001.fastq.gz", "") for f in r1_files]
-    return samples
