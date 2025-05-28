@@ -6,11 +6,13 @@ bed: "../dependencies/bed/Aviseq_hg19.bed"
 
 # merged_csv: "/mnt/c/Users/LENOVO/Documents/ONCO50_BATCH2/Results/Hg19/merged_annotations.csv"
 
-annova_dir: "/mnt/c/Users/LENOVO/Documents/ONCO50_BATCH2/Results/Fastq/annovar"
+annova_dir: "/fedgenhome/rotimi/softwares/annovar"
 
 db_dir: "$ANNOVAR_DIR/humandb"
 
-picard_path: "/mnt/c/Users/LENOVO/Documents/ONCO50_BATCH2/Results/Fastq/picard.jar"  # export this on the host machine
+picard_path: "/fedgenhome/rotimi/softwares/picard.jar"  # export this on the host machine
 
-gatk_path: "/home/abimbolajolaoluwa/gatk-4.6.1.0/gatk"   # export this on the host machine
+gatk_path: "/fedgenhome/rotimi/softwares/gatk-4.6.2.0/gatk"   # export this on the host machine
+
+bcftools: "/fedgenhome/rotimi/softwares/bcftools-1.21/bcftools"
 

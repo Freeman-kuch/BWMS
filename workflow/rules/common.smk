@@ -19,11 +19,17 @@ def get_rg_bam(sample, output_dir):
 def get_rg_bai(sample, output_dir):
     return os.path.join(output_dir, f"{sample}_sorted_rg.bam.bai")
 
+def get_gvcf(sample, gvcf_dir):
+    return os.path.join(vcf_dir, f"{sample}.g.vcf.gz")
+
 def get_vcf(sample, vcf_dir):
     return os.path.join(vcf_dir, f"{sample}.vcf.gz")
 
 def get_filtered_vcf(sample, vcf_dir):
     return os.path.join(vcf_dir, f"{sample}_filtered.vcf.gz")
+
+def get_normalized_vcf(sample, vcf_dir):
+    return os.path.join(vcf_dir, f"{sample}_normalized.vcf.gz")
 
 def get_avinput(sample, vcf_dir):
     return os.path.join(vcf_dir, f"{sample}.avinput")

@@ -19,6 +19,8 @@ SAMPLES = discover_samples(FASTQ_DIR)
 rule all:
     input:
         [get_bai(sample, OUTPUT_DIR) for sample in SAMPLES],
+        [get_gvcf(sample, VCF_DIR) for sample in SAMPLES],
+        [get_vcf(sample, VCF_DIR) for sample in SAMPLES],
         [get_filtered_vcf(sample, VCF_DIR) for sample in SAMPLES],
         [get_annovar_out(sample, VCF_DIR) + ".vcf" for sample in SAMPLES]
 
@@ -68,20 +70,6 @@ rule index_bam:  # to index the sorted read alignments so that we can quickly ac
     shell:
         "samtools index {input}"
 
-rule quality_control_gatk:
-    input:
-        vcf = lambda wildcards: get_vcf(wildcards.sample, VCF_DIR)
-    output:
-        filtered_vcf = get_filtered_vcf("{sample}", VCF_DIR)
-    shell:
-        """
-        gatk VariantFiltration \
-            -V {input.vcf} \
-            -O {output.filtered_vcf} \
-            --filter-expression "QD < 2.0 || FS > 60.0 || MQ < 40.0 || SOR > 3.0" \
-            --filter-name "LowQuality"
-        """
-
 rule add_read_groups:
     input:
         bam = lambda wildcards: get_bam(wildcards.sample, OUTPUT_DIR),
@@ -127,12 +115,52 @@ rule variant_calling:
             -ERC GVCF
         """
 
+rule GenotypeVcf: # Genotype the GVCF files to produce a VCF file
+    input:
+        gvcf = lambda wildcards: get_gvcf(wildcards.sample, VCF_DIR),
+    output:
+        vcf_out = get_vcf("{sample}", VCF_DIR)
+    shell:
+        """
+        gatk GenotypeGVCFs \
+            -R {REFERENCE} \
+            -V {input.gvcf} \
+            -O {output.vcf_out}
+        """
+
+rule quality_control_gatk:
+    input:
+        vcf = lambda wildcards: get_vcf(wildcards.sample, VCF_DIR)
+    output:
+        filtered_vcf = get_filtered_vcf("{sample}", VCF_DIR)
+    shell:
+        """
+        gatk VariantFiltration \
+            -V {input.vcf} \
+            -O {output.filtered_vcf} \
+            --filter-expression "QD < 2.0 || FS > 60.0 || MQ < 40.0 || SOR > 3.0" \
+            --filter-name "LowQuality"
+        """
+
+rule normalize_vcf:
+    input:
+        filtered_vcf = lambda wildcards: get_filtered_vcf(wildcards.sample, VCF_DIR)
+    output:
+        normalized_vcf = lambda wildcards: get_normalized_vcf(wildcards.sample, VCF_DIR)
+    shell:
+        """
+        bcftools norm -f \
+        {REFERENCE} -m -both \
+        {input.filtered_vcf} -Oz -o {output.normalized_vcf}
+        tabix -p vcf {output.normalized_vcf}
+        """
+
 rule annovar_annotation:
     input:
-        filtered_vcf = get_filtered_vcf("{sample}", VCF_DIR)
+        normalized_vcf = lambda wildcards: get_normalized_vcf(wildcards.sample, VCF_DIR)
     output:
-        annotated_prefix = get_annovar_out("{sample}", VCF_DIR),
-        avinput = temp(get_avinput("{sample}", VCF_DIR))
+        annotated_prefix = get_annovar_out("{sample}", OUTPUT_DIR),
+        avinput = temp(get_avinput("{sample}", OUTPUT_DIR))
     params:
         annovar_dir = ANNOVAR_DIR,
         db_dir = DB_DIR
