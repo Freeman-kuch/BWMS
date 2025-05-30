@@ -10,12 +10,15 @@ OUTPUT_DIR = config["output_dir"]
 VCF_DIR = config["output_dir"]
 BED = config["bed"]
 PICARD_PATH = config["picard_path"]
+JAVA_PATH = config["java_dir"]
 ANNOVAR_DIR = config["annova_dir"]
 DB_DIR = config["db_dir"]
 GATK_PATH = config["gatk_path"]
 SAMTOOLS_PATH = config["samtools"]
 BCFTOOLS_PATH = config["bcftools"]
+TABIX_PATH = config["tabix"]
 BWA_PATH = config["bwa"]
+
 
 
 
@@ -38,13 +41,19 @@ def validate_paths():
 validate_paths()
 
 rule all:
+    """
+    The purpose of the rule all in a Snakemake workflow is to define 
+    the final target files that the entire workflow should produce when executed
+    """
     input:
         [get_bai(sample, OUTPUT_DIR) for sample in SAMPLES],
         [get_gvcf(sample, VCF_DIR) for sample in SAMPLES],
         [get_vcf(sample, VCF_DIR) for sample in SAMPLES],
         [get_filtered_vcf(sample, VCF_DIR) for sample in SAMPLES],
         [get_normalized_vcf(sample, VCF_DIR) for sample in SAMPLES],
-        # [get_annovar_out(sample, VCF_DIR) + ".avinput" for sample in SAMPLES]
+        [get_annovar_out_vcf(sample, VCF_DIR) for sample in SAMPLES],
+        [get_annovar_out_txt(sample, VCF_DIR) for sample in SAMPLES]
+
 
 
 rule bwa_index:
@@ -112,10 +121,11 @@ rule add_read_groups:
         bai = temp(get_rg_bai("{sample}", OUTPUT_DIR))
     params:
         picard = PICARD_PATH,
-        samtools = SAMTOOLS_PATH
+        samtools = SAMTOOLS_PATH,
+        java = JAVA_PATH
     shell:
         """
-        java -jar {params.picard} AddOrReplaceReadGroups \
+        {params.java} -jar {params.picard} AddOrReplaceReadGroups \
             I={input.bam} \
             O={output.bam} \
             RGID=1 \
@@ -137,8 +147,9 @@ rule variant_calling:
         gvcf = get_gvcf("{sample}", VCF_DIR)
     params:
         gatk = GATK_PATH,
-        mem = "-Xmx4G"
-    threads: 4  # Adjust based on your system
+        mem = "-Xmx4G",
+        java = JAVA_PATH
+    threads: 4
     shell:
         """
         {params.gatk} --java-options "{params.mem}" HaplotypeCaller \
@@ -186,28 +197,39 @@ rule normalize_vcf:
     output:
         normalized_vcf = get_normalized_vcf("{sample}", VCF_DIR)
     params:
-        bcftools = BCFTOOLS_PATH
+        bcftools = BCFTOOLS_PATH,
+        tabix = TABIX_PATH
     shell:
         """
         {params.bcftools} norm -f \
         {REFERENCE} -m -both \
         {input.filtered_vcf} -Oz -o {output.normalized_vcf}
-        tabix -p vcf {output.normalized_vcf}
+        {params.tabix} -p vcf {output.normalized_vcf}
         """
 
 rule annovar_annotation:
     input:
         normalized_vcf = lambda wildcards: get_normalized_vcf(wildcards.sample, VCF_DIR)
     output:
-        annotated_prefix = os.path.join(OUTPUT_DIR, "{sample}_annotated"),
-        avinput = temp(os.path.join(OUTPUT_DIR, "{sample}.avinput"))
+        avinput = temp(os.path.join(VCF_DIR, "{sample}.avinput")),
+        annotated_vcf_prefix = get_annovar_out_vcf("{sample}", VCF_DIR),
+        annotated_txt_prefix = get_annovar_out_txt("{sample}", VCF_DIR)
+
     params:
         annovar_dir = ANNOVAR_DIR,
-        db_dir = DB_DIR
+        db_dir = DB_DIR,
+        annotated_prefix = get_annovar_out("{sample}", VCF_DIR)
     shell:
         """
         {params.annovar_dir}/convert2annovar.pl -format vcf4 {input.normalized_vcf} > {output.avinput}
         {params.annovar_dir}/table_annovar.pl {output.avinput} {params.db_dir} -buildver hg19 \
-            -out {output.annotated_prefix} -remove -protocol refGene,dbnsfp35a,clinvar_20240917,avsnp151 \
+            -out {params.annotated_prefix} -remove -protocol refGene,dbnsfp35a,clinvar_20240917,avsnp151 \
             -operation g,f,f,f -nastring . -vcfinput
         """
+
+
+"""
+TO run the workflow, use the command:
+snakemake --cores 1 --verbose --printshellcmds
+This will execute the Snakemake workflow defined in this Snakefile, processing the samples as specified in the configuration file.
+"""

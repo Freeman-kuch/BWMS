@@ -8,11 +8,13 @@ bed: "../dependencies/bed/Aviseq_hg19.bed"
 
 annova_dir: "/fedgenhome/rotimi/softwares/annovar"
 
-db_dir: "$ANNOVAR_DIR/humandb"
+db_dir: "/fedgenhome/rotimi/softwares/annovar/humandb"
 
-picard_path: "/fedgenhome/rotimi/softwares/picard.jar"  # export this on the host machine
+java_dir: "/fedgenhome/rotimi/softwares/jdk-17.0.10+7/bin/java"
 
-gatk_path: "/fedgenhome/rotimi/softwares/gatk-4.6.2.0/gatk"   # export this on the host machine
+picard_path: "/fedgenhome/rotimi/softwares/picard.jar"
+
+gatk_path: "/fedgenhome/rotimi/softwares/gatk-4.6.2.0/gatk"
 
 bcftools: "/fedgenhome/rotimi/softwares/bcftools-1.21/bcftools"
 
