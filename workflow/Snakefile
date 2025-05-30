@@ -85,7 +85,7 @@ rule sam_to_bam:
         os.path.join(OUTPUT_DIR, "{sample}.sam")
     output:
         temp(os.path.join(OUTPUT_DIR, "{sample}.bam"))
-    threads: 8
+    # threads: 8
     params:
         samtools = SAMTOOLS_PATH
     shell:
@@ -96,7 +96,7 @@ rule sort_bam:
         os.path.join(OUTPUT_DIR, "{sample}.bam")
     output:
         get_bam("{sample}", OUTPUT_DIR)
-    threads: 8
+    # threads: 8
     params:
         samtools = SAMTOOLS_PATH
     shell:
@@ -149,7 +149,7 @@ rule variant_calling:
         gatk = GATK_PATH,
         mem = "-Xmx4G",
         java = JAVA_PATH
-    threads: 4
+    # threads: 4
     shell:
         """
         {params.gatk} --java-options "{params.mem}" HaplotypeCaller \
