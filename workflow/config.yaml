@@ -1,10 +1,10 @@
 fastq_dir: "../raw_data/"
-reference: "../dependencies/reference/hg19.fa"
-output_dir: "../results/output"
 
-bed: "../dependencies/bed/Aviseq_hg19.bed"
+reference: "/fedgenhome/rotimi/databases/hg19.fa"
 
-# merged_csv: "/mnt/c/Users/LENOVO/Documents/ONCO50_BATCH2/Results/Hg19/merged_annotations.csv"
+output_dir: "../results/30_06_2025_output"
+
+bed: "../dependencies/bed/Aviseq_hg19edit.bed"
 
 annova_dir: "/fedgenhome/rotimi/softwares/annovar"
 
