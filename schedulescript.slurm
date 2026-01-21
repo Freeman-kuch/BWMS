@@ -28,7 +28,10 @@ cd "$SNAKEFILE" || exit 1
 
 echo "Running Snakemake workflow in $SNAKEFILE"
 
-snakemake --cores all
+snakemake --cores $SLURM_CPUS_PER_TASK \
+    --printshellcmds \
+    --latency-wait 60 \
+    --keep-going
 
     # --use-conda \
     # --rerun-incomplete \
